@@ -2,6 +2,7 @@ package com.openelements.dco.scanner;
 
 import java.time.ZonedDateTime;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public record Commit(String identifier, ZonedDateTime time, String fullMessage, String shortMessage,
                      Set<Person> persons) {
@@ -20,8 +21,16 @@ public record Commit(String identifier, ZonedDateTime time, String fullMessage, 
             throw new IllegalArgumentException("Persons must not be null or empty");
         }
     }
-    
+
     public boolean isValid() {
-        return persons().stream().noneMatch(person -> !person.internal() && person.isAuthor() && !person.isSigned());
+        return persons().stream().noneMatch(person -> !person.isValid());
+    }
+
+    public Set<Person> validPersons() {
+        return persons().stream().filter(Person::isValid).collect(Collectors.toSet());
+    }
+
+    public Set<Person> invalidPersons() {
+        return persons().stream().filter(person -> !person.isValid()).collect(Collectors.toSet());
     }
 }

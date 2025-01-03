@@ -16,12 +16,21 @@ public record Person(String name, String email, String gitHubIdentifier, Set<Rol
             throw new IllegalArgumentException("Roles must not be null or empty");
         }
     }
-    
+
     public boolean isSigned() {
         return roles().contains(Role.SIGNER);
     }
 
     public boolean isAuthor() {
         return roles().contains(Role.AUTHOR) || roles().contains(Role.CO_AUTHER);
+    }
+
+    public boolean isValid() {
+        if (!internal()) {
+            if (isAuthor() && !isSigned()) {
+                return false;
+            }
+        }
+        return true;
     }
 }

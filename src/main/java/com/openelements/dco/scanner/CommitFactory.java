@@ -1,6 +1,7 @@
 package com.openelements.dco.scanner;
 
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -66,17 +67,50 @@ public class CommitFactory {
         Objects.requireNonNull(fullMessage, "Full message must not be null");
         Objects.requireNonNull(identifierInMessage, "Identifier in message must not be null");
         Objects.requireNonNull(role, "Role must not be null");
-        return fullMessage.lines()
-                .filter(line -> line.contains(identifierInMessage))
-                .map(line -> {
-                    final int start = line.indexOf(identifierInMessage);
-                    final int end = line.indexOf(" <", start);
-                    final String name = line.substring(start + 15, end).trim();
-                    final int emailStart = end + 2;
-                    final int emailEnd = line.indexOf(">", emailStart);
-                    final String email = line.substring(emailStart, emailEnd).trim();
-                    return PersonFactory.getInstance().create(name, email, Set.of(role));
-                }).collect(Collectors.toUnmodifiableSet());
+        try {
+            return fullMessage.lines()
+                    .filter(line -> line.contains(identifierInMessage))
+                    .map(line -> {
+                        try {
+                            final int start = line.indexOf(identifierInMessage) + identifierInMessage.length();
+                            final String term = line.substring(start).trim();
+                            if (term.isBlank()) {
+                                throw new IllegalArgumentException("Term must not be null or empty");
+                            }
+                            if (term.contains("<") && term.contains(">")) {
+                                final int emailStart = term.indexOf("<");
+                                final String name = term.substring(0, emailStart).trim();
+                                final int emailEnd = term.indexOf(">");
+                                final String email = term.substring(emailStart + 1, emailEnd).trim();
+                                return PersonFactory.getInstance().create(name, email, Set.of(role));
+                            } else {
+                                final List<String> sections = Arrays.asList(term.split(" "));
+                                if (sections.size() >= 2) {
+                                    final String name = sections.subList(0, sections.size() - 1).stream()
+                                            .collect(Collectors.joining(" "));
+                                    final String email = sections.get(sections.size() - 1);
+                                    return PersonFactory.getInstance().create(name, email, Set.of(role));
+                                } else if (sections.size() == 1) {
+                                    final String name = sections.get(0);
+                                    if (name.contains("@")) {
+                                        return PersonFactory.getInstance().create("UNKNOWN", name, Set.of(role));
+                                    } else {
+                                        return PersonFactory.getInstance().create(name, "UNKNOWN", Set.of(role));
+                                    }
+                                } else {
+                                    throw new IllegalArgumentException("Term must not be null or empty");
+                                }
+                            }
+                        } catch (Exception e) {
+                            throw new RuntimeException(
+                                    "Error while extracting " + identifierInMessage + " from line: " + line,
+                                    e);
+                        }
+                    }).collect(Collectors.toUnmodifiableSet());
+        } catch (Exception e) {
+            log.error("Error while extracting '" + identifierInMessage + "' from message", e);
+            return Set.of(new Person("UNKNOWN", "UNKNOWN", null, Set.of(role), false));
+        }
     }
 
     private static Set<Person> merge(Set<Person>... sets) {
