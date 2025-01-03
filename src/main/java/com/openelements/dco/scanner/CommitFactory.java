@@ -46,12 +46,13 @@ public class CommitFactory {
         final String fullMessage = revCommit.getFullMessage();
         final String shortMessage = revCommit.getShortMessage();
         final Set<Person> basicPersons = new HashSet<>();
-        final Person author = new Person(revCommit.getAuthorIdent().getName(),
+        final Person author = PersonFactory.getInstance().create(revCommit.getAuthorIdent().getName(),
                 revCommit.getAuthorIdent().getEmailAddress(), Set.of(Role.AUTHOR));
         basicPersons.add(author);
         Optional.ofNullable(revCommit.getCommitterIdent())
-                .map(committerIdent -> new Person(committerIdent.getName(), committerIdent.getEmailAddress(),
-                        Set.of(Role.COMMITTER)))
+                .map(committerIdent -> PersonFactory.getInstance()
+                        .create(committerIdent.getName(), committerIdent.getEmailAddress(),
+                                Set.of(Role.COMMITTER)))
                 .ifPresent(basicPersons::add);
         final Set<Person> coAuthors = extractFromMessage(fullMessage, "Co-authored-by:", Role.CO_AUTHER);
         final Set<Person> coDevelopers = extractFromMessage(fullMessage, "Co-developed-by:", Role.CO_AUTHER);
@@ -74,7 +75,7 @@ public class CommitFactory {
                     final int emailStart = end + 2;
                     final int emailEnd = line.indexOf(">", emailStart);
                     final String email = line.substring(emailStart, emailEnd).trim();
-                    return new Person(name, email, Set.of(role));
+                    return PersonFactory.getInstance().create(name, email, Set.of(role));
                 }).collect(Collectors.toUnmodifiableSet());
     }
 
@@ -94,8 +95,8 @@ public class CommitFactory {
                 if (existingPerson.isPresent()) {
                     final HashSet<Role> mergedRoles = new HashSet<>(existingPerson.get().roles());
                     mergedRoles.addAll(person.roles());
-                    final Person updatedPerson = new Person(existingPerson.get().name(), existingPerson.get().email(),
-                            mergedRoles);
+                    final Person updatedPerson = PersonFactory.getInstance()
+                            .create(existingPerson.get().name(), existingPerson.get().email(), mergedRoles);
                     merged.remove(existingPerson.get());
                     merged.add(updatedPerson);
                 } else {

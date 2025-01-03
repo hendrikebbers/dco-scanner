@@ -1,15 +1,10 @@
 package com.openelements.dco.scanner;
 
 import java.time.ZonedDateTime;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-import org.eclipse.jgit.revwalk.RevCommit;
 
-public record Commit(String identifier, ZonedDateTime time, String fullMessage, String shortMessage, Set<Person> persons) {
+public record Commit(String identifier, ZonedDateTime time, String fullMessage, String shortMessage,
+                     Set<Person> persons) {
 
     public Commit {
         if (identifier == null || identifier.isBlank()) {
@@ -24,5 +19,9 @@ public record Commit(String identifier, ZonedDateTime time, String fullMessage, 
         if (persons == null || persons.isEmpty()) {
             throw new IllegalArgumentException("Persons must not be null or empty");
         }
+    }
+    
+    public boolean isValid() {
+        return persons().stream().noneMatch(person -> !person.internal() && person.isAuthor() && !person.isSigned());
     }
 }
