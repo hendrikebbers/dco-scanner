@@ -7,6 +7,7 @@ import java.util.List;
 import org.eclipse.jgit.api.Git;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 public class DcoScanner {
 
@@ -23,9 +24,12 @@ public class DcoScanner {
         repositories.stream().parallel()
                 .forEach(repo -> {
                     try {
+                        MDC.put("repository", repo);
                         handleRepository(repo);
                     } catch (Exception e) {
                         throw new RuntimeException("Error while handling repository " + repo, e);
+                    } finally {
+                        MDC.remove("repository");
                     }
                 });
     }
